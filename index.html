@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f7f4">
+    <title>Loan Payoff vs. Invest</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Balance home">
+          <span class="brand-mark" aria-hidden="true">B</span>
+          <span>balance</span>
+        </a>
+        <span class="topbar-note">A clearer view of your money</span>
+      </header>
+
+      <section class="intro" aria-labelledby="page-title">
+        <p class="eyebrow">THE BIGGER PICTURE</p>
+        <h1 id="page-title">Pay off your loan,<br>or keep investing?</h1>
+        <p class="intro-copy">See how the numbers compare when you put your remaining loan balance to work—or use it to become debt-free.</p>
+      </section>
+
+      <section class="calculator" aria-label="Loan payoff calculator">
+        <form class="inputs-card" id="calculator-form">
+          <div class="card-heading">
+            <div>
+              <p class="eyebrow">YOUR NUMBERS</p>
+              <h2>Set the scene</h2>
+            </div>
+            <span class="step-badge" aria-hidden="true">01</span>
+          </div>
+
+          <label class="field" for="principal">
+            <span>Remaining loan balance</span>
+            <span class="input-wrap">
+              <span class="input-prefix" aria-hidden="true">$</span>
+              <input id="principal" name="principal" type="number" min="0.01" max="1000000000" step="any" value="250000" required inputmode="decimal">
+            </span>
+          </label>
+
+          <div class="field-row">
+            <label class="field" for="loan-rate">
+              <span>Loan interest rate</span>
+              <span class="input-wrap">
+                <input id="loan-rate" name="loanRate" type="number" min="0" max="100" step="0.001" value="3.5" required inputmode="decimal">
+                <span class="input-suffix" aria-hidden="true">%</span>
+              </span>
+            </label>
+            <label class="field" for="term">
+              <span>Time left on loan</span>
+              <span class="input-wrap">
+                <input id="term" name="term" type="number" min="1" max="600" step="1" value="240" required inputmode="numeric">
+                <span class="input-suffix" aria-hidden="true">mo</span>
+              </span>
+            </label>
+          </div>
+
+          <label class="field" for="investment-rate">
+            <span>Expected investment APR</span>
+            <span class="input-wrap">
+              <input id="investment-rate" name="investmentRate" type="number" min="0" max="100" step="0.01" value="7" required inputmode="decimal">
+              <span class="input-suffix" aria-hidden="true">%</span>
+            </span>
+            <span class="field-hint">The same return is used for both strategies.</span>
+          </label>
+
+          <button class="submit-button" type="submit">
+            Compare strategies
+            <span aria-hidden="true">→</span>
+          </button>
+          <p class="form-error" id="form-error" role="alert" hidden></p>
+        </form>
+
+        <section class="results-card" id="results" aria-labelledby="results-title" aria-live="polite">
+          <div class="results-topline">
+            <p class="eyebrow">YOUR COMPARISON</p>
+            <span class="step-badge step-badge-light" aria-hidden="true">02</span>
+          </div>
+          <h2 id="results-title">Investing may leave you with</h2>
+          <p class="headline-result" id="difference">$—</p>
+          <p class="result-caption" id="result-caption">more at the end of your loan term</p>
+
+          <div class="chart" role="img" aria-label="Comparison of ending investment balances">
+            <div class="chart-row">
+              <div class="chart-label">
+                <span class="legend-dot legend-invest"></span>
+                <span>Keep loan + invest balance</span>
+                <strong id="keep-value">$—</strong>
+              </div>
+              <div class="bar-track"><span class="bar bar-invest" id="keep-bar"></span></div>
+            </div>
+            <div class="chart-row">
+              <div class="chart-label">
+                <span class="legend-dot legend-payoff"></span>
+                <span>Pay off + invest payments</span>
+                <strong id="payoff-value">$—</strong>
+              </div>
+              <div class="bar-track"><span class="bar bar-payoff" id="payoff-bar"></span></div>
+            </div>
+          </div>
+
+          <div class="payment-note">
+            <span class="note-icon" aria-hidden="true">↗</span>
+            <p>With the loan, your estimated monthly payment is <strong id="monthly-payment">$—</strong>. After paying it off, that same amount is invested each month.</p>
+          </div>
+          <p class="disclaimer">Illustration only—not financial advice. Investment returns are assumed constant and are not guaranteed.</p>
+        </section>
+      </section>
+
+      <section class="how-it-works" aria-label="How the comparison works">
+        <span class="how-icon" aria-hidden="true">i</span>
+        <p><strong>How it works</strong><br>Both strategies are compared over the remaining loan term. “Keep loan” invests your balance today and continues the scheduled loan payments. “Pay off” uses that balance to clear the loan, then invests the freed-up monthly payment. Returns are compounded monthly, with deposits made at month-end.</p>
+      </section>
+
+      <footer class="footer">
+        <span>Thoughtful money decisions start with a comparison.</span>
+        <span>Estimates are for educational purposes.</span>
+      </footer>
+    </main>
+  </body>
+</html>
