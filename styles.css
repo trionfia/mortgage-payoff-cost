@@ -29,38 +29,7 @@ body {
   margin: 0 auto;
 }
 
-.topbar {
-  height: 82px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(27, 48, 44, .08);
-}
-
-.brand {
-  color: var(--ink);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  font-family: Manrope, sans-serif;
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -.8px;
-}
-
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 9px;
-  background: var(--green);
-  color: white;
-  font-size: 16px;
-}
-
-.topbar-note, .footer { color: var(--muted); font-size: 12px; }
+.footer { color: var(--muted); font-size: 12px; }
 
 .intro {
   max-width: 700px;
@@ -235,6 +204,31 @@ h2 {
   position: relative;
 }
 
+.comparison-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 18px;
+}
+
+.compare-option {
+  padding: 7px 10px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  color: #dfeee7;
+  font: 600 10px "DM Sans", sans-serif;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+
+.compare-option:hover { background: rgba(255,255,255,.12); }
+.compare-option.is-active {
+  background: rgba(255,255,255,.18);
+  border-color: rgba(255,255,255,.38);
+}
+
 .results-card::after {
   position: absolute;
   right: -86px;
@@ -290,11 +284,20 @@ h2 {
 .bar-invest { background: #f4c985; }
 .bar-payoff { background: #86c4aa; }
 
+.scenario-best { color: #dff5e8; background: #86c4aa; }
+.scenario-middle { color: #fff4c9; background: #f4c985; }
+.scenario-worst { color: #ffe6e6; background: #d86d6d; }
+
 .payment-note {
   display: flex;
   gap: 11px;
   align-items: flex-start;
   margin-top: 18px;
+}
+
+.payment-note-copy {
+  display: grid;
+  gap: 6px;
 }
 
 .note-icon {
@@ -311,6 +314,7 @@ h2 {
 
 .payment-note p { margin: 1px 0 0; color: #c3d9cf; font-size: 11px; line-height: 1.6; }
 .payment-note strong { color: white; font-weight: 600; }
+#months-early-text { opacity: 0; } 
 .disclaimer { margin: 15px 0 0; color: #a8c7b9; font-size: 9px; line-height: 1.5; }
 
 .how-it-works {
@@ -356,8 +360,6 @@ h2 {
 }
 
 @media (max-width: 420px) {
-  .topbar { height: 66px; }
-  .topbar-note { font-size: 10px; }
   .intro { margin: 36px auto 26px; }
   .intro-copy { font-size: 13px; }
   .field-row { gap: 9px; }

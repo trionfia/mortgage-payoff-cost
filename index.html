@@ -10,18 +10,10 @@
   </head>
   <body>
     <main class="page-shell">
-      <header class="topbar">
-        <a class="brand" href="#" aria-label="Balance home">
-          <span class="brand-mark" aria-hidden="true">B</span>
-          <span>balance</span>
-        </a>
-        <span class="topbar-note">A clearer view of your money</span>
-      </header>
-
       <section class="intro" aria-labelledby="page-title">
         <p class="eyebrow">THE BIGGER PICTURE</p>
         <h1 id="page-title">Pay off your loan,<br>or keep investing?</h1>
-        <p class="intro-copy">See how the numbers compare when you put your remaining loan balance to work—or use it to become debt-free.</p>
+        <p class="intro-copy">See the opportunity cost of keeping your money invested instead of paying off a loan early.</p>
       </section>
 
       <section class="calculator" aria-label="Loan payoff calculator">
@@ -68,6 +60,15 @@
             <span class="field-hint">The same return is used for both strategies.</span>
           </label>
 
+          <label class="field" for="extra-payment">
+            <span>Extra monthly payment</span>
+            <span class="input-wrap">
+              <span class="input-prefix" aria-hidden="true">$</span>
+              <input id="extra-payment" name="extraPayment" type="number" min="0" max="1000000000" step="any" value="0" inputmode="decimal">
+            </span>
+            <span class="field-hint">Optional. Extra payments go to the loan principal and can shorten the payoff timeline.</span>
+          </label>
+
           <button class="submit-button" type="submit">
             Compare strategies
             <span aria-hidden="true">→</span>
@@ -80,6 +81,13 @@
             <p class="eyebrow">YOUR COMPARISON</p>
             <span class="step-badge step-badge-light" aria-hidden="true">02</span>
           </div>
+
+          <div class="comparison-toggle" aria-label="Choose which scenarios to compare">
+            <button type="button" class="compare-option is-active" data-pair="keep-extra">Keep vs extra</button>
+            <button type="button" class="compare-option" data-pair="keep-payoff">Keep vs payoff</button>
+            <button type="button" class="compare-option" data-pair="extra-payoff">Extra vs payoff</button>
+          </div>
+
           <h2 id="results-title">Investing may leave you with</h2>
           <p class="headline-result" id="difference">$—</p>
           <p class="result-caption" id="result-caption">more at the end of your loan term</p>
@@ -87,7 +95,7 @@
           <div class="chart" role="img" aria-label="Comparison of ending investment balances">
             <div class="chart-row">
               <div class="chart-label">
-                <span class="legend-dot legend-invest"></span>
+                <span class="legend-dot legend-invest" id="keep-dot"></span>
                 <span>Keep loan + invest balance</span>
                 <strong id="keep-value">$—</strong>
               </div>
@@ -95,17 +103,28 @@
             </div>
             <div class="chart-row">
               <div class="chart-label">
-                <span class="legend-dot legend-payoff"></span>
+                <span class="legend-dot legend-payoff" id="extra-dot"></span>
+                <span>Keep loan + extra monthly payment</span>
+                <strong id="extra-value">$—</strong>
+              </div>
+              <div class="bar-track"><span class="bar bar-payoff" id="extra-bar"></span></div>
+            </div>
+            <div class="chart-row">
+              <div class="chart-label">
+                <span class="legend-dot legend-invest" id="payoff-dot"></span>
                 <span>Pay off + invest payments</span>
                 <strong id="payoff-value">$—</strong>
               </div>
-              <div class="bar-track"><span class="bar bar-payoff" id="payoff-bar"></span></div>
+              <div class="bar-track"><span class="bar bar-invest" id="payoff-bar"></span></div>
             </div>
           </div>
 
           <div class="payment-note">
             <span class="note-icon" aria-hidden="true">↗</span>
-            <p>With the loan, your estimated monthly payment is <strong id="monthly-payment">$—</strong>. After paying it off, that same amount is invested each month.</p>
+            <div class="payment-note-copy">
+              <p>With the loan, your estimated monthly payment is <strong id="monthly-payment">$—</strong>. After paying it off, that same amount is invested each month.</p>
+              <p id="months-early-text">Extra monthly payments would pay off the loan <strong id="months-early">—</strong> early.</p>
+            </div>
           </div>
           <p class="disclaimer">Illustration only—not financial advice. Investment returns are assumed constant and are not guaranteed.</p>
         </section>
@@ -113,11 +132,11 @@
 
       <section class="how-it-works" aria-label="How the comparison works">
         <span class="how-icon" aria-hidden="true">i</span>
-        <p><strong>How it works</strong><br>Both strategies are compared over the remaining loan term. “Keep loan” invests your balance today and continues the scheduled loan payments. “Pay off” uses that balance to clear the loan, then invests the freed-up monthly payment. Returns are compounded monthly, with deposits made at month-end.</p>
+        <p><strong>How it works</strong><br>All three strategies are compared over the remaining loan term. “Keep loan + invest balance” invests the current balance today and continues the scheduled loan payments. “Keep loan + extra monthly payment” starts with the same balance, invests it, subtracts the extra payment from the invested balance each month while the loan remains active, and then contributes the regular monthly payment to investments once the loan is repaid early. “Pay off” uses the balance to clear the loan, then invests the freed-up monthly payment. Returns are compounded monthly, with deposits made at month-end.</p>
       </section>
 
       <footer class="footer">
-        <span>Thoughtful money decisions start with a comparison.</span>
+        <span>Wise financial decisions are made by understanding the finances.</span>
         <span>Estimates are for educational purposes.</span>
       </footer>
     </main>
