@@ -1,11 +1,12 @@
 # Loan Payoff vs. Invest
 
-A small, browser-based calculator for comparing two ways to use money equal to a remaining loan balance:
+A small, browser-based calculator for comparing three ways to use money equal to a remaining loan balance:
 
-1. **Keep the loan:** leave the balance invested for the remaining loan term and continue making the scheduled monthly loan payments.
-2. **Pay off the loan:** use the balance to pay off the loan, then invest the monthly payment amount that is no longer needed.
+1. **Keep the loan + invest balance:** leave the balance invested for the remaining loan term and continue making the scheduled monthly loan payments.
+2. **Keep the loan + extra monthly payment:** keep the loan in place, invest the balance, and redirect the extra monthly payment amount away from the investment balance each month to reduce the loan principal.
+3. **Pay off the loan + invest payments:** use the balance to pay off the loan, then invest the monthly payment amount that is no longer needed.
 
-The calculator estimates the ending investment balance for both strategies and shows the difference. It is an educational illustration, not financial advice.
+The calculator estimates the ending investment balance for all three strategies and highlights the strongest result. It is an educational illustration, not financial advice.
 
 ## Run the app
 
@@ -17,6 +18,7 @@ No build step, package installation, or server is required. Clone or download th
 - **Loan interest rate:** annual loan rate from 0% to 100%, entered to three decimal places (for example, `3.875`).
 - **Time left on loan:** whole number of months from 1 to 600.
 - **Expected investment APR:** annual investment return from 0% to 100%, entered to two decimal places.
+- **Extra monthly payment:** optional additional amount applied to the loan principal each month. If set, it can shorten the payoff horizon and reduce total interest paid.
 
 Press **Compare strategies** to recalculate the results. The calculator starts with example values that can be changed.
 
