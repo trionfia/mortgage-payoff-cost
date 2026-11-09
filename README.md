@@ -18,6 +18,8 @@ No build step, package installation, or server is required. Clone or download th
 - **Loan interest rate:** annual loan rate from 0% to 100%, entered to three decimal places (for example, `3.875`).
 - **Time left on loan:** whole number of months from 1 to 600.
 - **Expected investment APR:** annual investment return from 0% to 100%, entered to two decimal places.
+- **Tax-efficient investment portfolio:** estimated annual tax drag of 0.45% (high), 0.75% (moderate), or 1.3% (low).
+- **Long-term capital gains tax rate:** 15% or 20%, applied to each scenario's final investment balance.
 - **Extra monthly payment:** optional additional amount applied to the loan principal each month. If set, it can shorten the payoff horizon and reduce total interest paid.
 
 Press **Compare strategies** to recalculate the results. The calculator starts with example values that can be changed.
@@ -40,35 +42,55 @@ otherwise:
               / (1 - (1 + monthly rate)^(-months remaining))
 ```
 
-### Keep the loan and invest
+### Investment growth and tax drag
 
-The remaining balance is treated as an investment made today, growing at the assumed monthly investment rate for the full loan term:
+All investments grow at the assumed monthly investment rate. At the end of each full 12-month period, the selected annual tax drag is deducted from the investment balance:
 
 ```text
-ending investment = remaining balance * (1 + monthly investment rate)^months
+annual tax drag = 0.45% (high), 0.75% (moderate), or 1.3% (low)
+investment balance after each 12 months *= (1 - annual tax drag)
 ```
+
+The drag applies to the full balance, including investment gains and contributions. For terms shorter than 12 months, no annual deduction is applied.
+
+### Long-term capital gains tax
+
+After projecting each scenario and applying annual tax drag, the selected long-term capital gains rate is deducted from the final investment balance:
+
+```text
+after-tax ending balance = ending investment balance * (1 - capital gains tax rate)
+```
+
+This final deduction applies equally to all three scenarios.
+
+### Keep the loan and invest
+
+The remaining balance is treated as an investment made today. It grows monthly, with annual tax drag applied at each 12-month mark.
+
+### Keep the loan and make extra monthly payments
+
+The starting investment is the remaining balance. While the loan is active, each extra monthly payment is deducted from the invested balance and applied to loan principal in addition to the scheduled payment. After early payoff, scheduled loan payments are invested instead. When the extra payment is $0, this projection matches the keep-and-invest scenario.
 
 ### Pay off the loan and invest the payments
 
-The balance is used to pay off the loan immediately. Each month, the estimated loan payment is invested at the same assumed monthly investment rate. Contributions are assumed to happen at the end of each month:
+The balance is used to pay off the loan immediately. Each month, the estimated loan payment is invested at the same assumed monthly investment rate. Contributions are made at month-end, and annual tax drag is applied after each 12th month's contribution.
 
 ```text
-if monthly investment rate is 0:
-    ending investment = monthly payment * months
-otherwise:
-    ending investment = monthly payment
-                        * ((1 + monthly investment rate)^months - 1)
-                        / monthly investment rate
+each month: investment balance = investment balance * (1 + monthly investment rate)
+            investment balance += monthly payment
+each 12th month: investment balance *= (1 - annual tax drag)
 ```
 
-The displayed difference is the absolute difference between the two ending investment balances. The result indicates which strategy has the higher projected balance. Currency values are rounded to whole dollars for display; calculations retain precision internally.
+The comparison highlights the difference between the selected pair of ending investment balances. Currency values are rounded to whole dollars for display; calculations retain precision internally.
 
 ## Assumptions and limitations
 
 - The loan has a fixed rate and is repaid with equal monthly payments.
 - Investment APR is treated as a constant nominal annual rate, compounded monthly.
 - Monthly investment contributions are made at month-end.
-- Taxes, investment fees, loan fees, changing rates, payment timing variations, and market volatility are not modeled.
+- The selected annual tax drag is a simplified estimate, not a tax calculation; actual tax treatment depends on the portfolio and investor.
+- The selected 15% or 20% capital gains rate is applied to the entire final investment balance as a simplified estimate; actual capital gains taxes generally depend on taxable gains and individual circumstances.
+- Investment fees beyond the selected tax drag, loan fees, changing rates, payment timing variations, and market volatility are not modeled.
 - Actual investment returns are uncertain; the estimated result is not a forecast or guarantee.
 
 ## Project files
@@ -76,4 +98,3 @@ The displayed difference is the absolute difference between the two ending inves
 - `index.html` — page structure, form, and result display.
 - `styles.css` — responsive layout and visual styling.
 - `app.js` — input validation, loan payment formula, investment projections, and result updates.
-

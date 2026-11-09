@@ -8,6 +8,8 @@ const fields = {
   loanRate: document.querySelector("#loan-rate"),
   term: document.querySelector("#term"),
   investmentRate: document.querySelector("#investment-rate"),
+  taxEfficiency: document.querySelector("#tax-efficiency"),
+  capitalGainsRate: document.querySelector("#capital-gains-rate"),
   extraPayment: document.querySelector("#extra-payment"),
 };
 
@@ -17,9 +19,31 @@ const formatCurrency = (value) => new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 }).format(value);
 
-function futureValueOfMonthlyContributions(payment, monthlyRate, months) {
-  if (monthlyRate === 0) return payment * months;
-  return payment * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+function applyAnnualTaxDrag(balance, month, annualTaxDrag) {
+  return month % 12 === 0 ? balance * (1 - annualTaxDrag) : balance;
+}
+
+function growInitialInvestment(principal, monthlyRate, months, annualTaxDrag) {
+  let balance = principal;
+
+  for (let month = 1; month <= months; month += 1) {
+    balance *= 1 + monthlyRate;
+    balance = applyAnnualTaxDrag(balance, month, annualTaxDrag);
+  }
+
+  return balance;
+}
+
+function futureValueOfMonthlyContributions(payment, monthlyRate, months, annualTaxDrag) {
+  let balance = 0;
+
+  for (let month = 1; month <= months; month += 1) {
+    balance *= 1 + monthlyRate;
+    balance += payment;
+    balance = applyAnnualTaxDrag(balance, month, annualTaxDrag);
+  }
+
+  return balance;
 }
 
 function getLoanPayoffMonths({ principal, loanRate, months, extraMonthlyPayment }) {
@@ -44,13 +68,13 @@ function getLoanPayoffMonths({ principal, loanRate, months, extraMonthlyPayment 
   return paidMonths;
 }
 
-function simulateKeepLoanWithExtraMonthlyPayment({ principal, loanRate, months, investmentRate, extraMonthlyPayment }) {
+function simulateKeepLoanWithExtraMonthlyPayment({ principal, loanRate, months, investmentRate, annualTaxDrag, extraMonthlyPayment }) {
+  const monthlyInvestmentRate = investmentRate / 100 / 12;
   if (extraMonthlyPayment === 0) {
-    return principal * Math.pow(1 + (investmentRate / 100 / 12), months);
+    return growInitialInvestment(principal, monthlyInvestmentRate, months, annualTaxDrag);
   }
 
   const monthlyLoanRate = loanRate / 100 / 12;
-  const monthlyInvestmentRate = investmentRate / 100 / 12;
   const monthlyPayment = monthlyLoanRate === 0
     ? principal / months
     : principal * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -months));
@@ -58,11 +82,11 @@ function simulateKeepLoanWithExtraMonthlyPayment({ principal, loanRate, months, 
   let loanBalance = principal;
   let investmentBalance = principal;
 
-  for (let month = 0; month < months; month += 1) {
+  for (let month = 1; month <= months; month += 1) {
     investmentBalance *= 1 + monthlyInvestmentRate;
 
     if (loanBalance > 0) {
-      investmentBalance -= extraMonthlyPayment;
+      investmentBalance = Math.max(0, investmentBalance - extraMonthlyPayment);
 
       const interest = loanBalance * monthlyLoanRate;
       const totalPayment = monthlyPayment + extraMonthlyPayment;
@@ -71,31 +95,39 @@ function simulateKeepLoanWithExtraMonthlyPayment({ principal, loanRate, months, 
     } else {
       investmentBalance += monthlyPayment;
     }
+
+    investmentBalance = applyAnnualTaxDrag(investmentBalance, month, annualTaxDrag);
   }
 
   return investmentBalance;
 }
 
-function calculateComparison({ principal, loanRate, months, investmentRate, extraMonthlyPayment = 0 }) {
+function calculateComparison({ principal, loanRate, months, investmentRate, annualTaxDrag, capitalGainsRate, extraMonthlyPayment = 0 }) {
   const monthlyInvestmentRate = investmentRate / 100 / 12;
   const monthlyLoanRate = loanRate / 100 / 12;
   const monthlyPayment = monthlyLoanRate === 0
     ? principal / months
     : principal * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -months));
 
-  const keepInvestment = principal * Math.pow(1 + monthlyInvestmentRate, months);
-  const keepInvestmentWithExtra = simulateKeepLoanWithExtraMonthlyPayment({
+  const keepInvestmentBeforeCapitalGains = growInitialInvestment(principal, monthlyInvestmentRate, months, annualTaxDrag);
+  const keepInvestmentWithExtraBeforeCapitalGains = simulateKeepLoanWithExtraMonthlyPayment({
     principal,
     loanRate,
     months,
     investmentRate,
+    annualTaxDrag,
     extraMonthlyPayment,
   });
-  const payoffInvestment = futureValueOfMonthlyContributions(
+  const payoffInvestmentBeforeCapitalGains = futureValueOfMonthlyContributions(
     monthlyPayment,
     monthlyInvestmentRate,
     months,
+    annualTaxDrag,
   );
+  const afterCapitalGainsTax = (balance) => balance * (1 - capitalGainsRate);
+  const keepInvestment = afterCapitalGainsTax(keepInvestmentBeforeCapitalGains);
+  const keepInvestmentWithExtra = afterCapitalGainsTax(keepInvestmentWithExtraBeforeCapitalGains);
+  const payoffInvestment = afterCapitalGainsTax(payoffInvestmentBeforeCapitalGains);
   const loanPayoffMonthsWithExtra = getLoanPayoffMonths({
     principal,
     loanRate,
@@ -215,6 +247,8 @@ function readInputs() {
     loanRate: Number(fields.loanRate.value),
     months: Number(fields.term.value),
     investmentRate: Number(fields.investmentRate.value),
+    annualTaxDrag: Number(fields.taxEfficiency.value),
+    capitalGainsRate: Number(fields.capitalGainsRate.value),
     extraMonthlyPayment: Number(fields.extraPayment.value),
   };
 }
@@ -225,6 +259,8 @@ function validateInputs(values) {
     [fields.loanRate, values.loanRate >= 0 && values.loanRate <= 100],
     [fields.term, Number.isInteger(values.months) && values.months >= 1 && values.months <= 600],
     [fields.investmentRate, values.investmentRate >= 0 && values.investmentRate <= 100],
+    [fields.taxEfficiency, [0.0045, 0.0075, 0.013].includes(values.annualTaxDrag)],
+    [fields.capitalGainsRate, [0.15, 0.2].includes(values.capitalGainsRate)],
     [fields.extraPayment, Number.isFinite(values.extraMonthlyPayment) && values.extraMonthlyPayment >= 0 && values.extraMonthlyPayment <= 1_000_000_000],
   ];
 
@@ -253,10 +289,12 @@ form.addEventListener("submit", (event) => {
 });
 
 for (const field of Object.values(fields)) {
-  field.addEventListener("input", () => {
+  const clearValidationState = () => {
     field.removeAttribute("aria-invalid");
     errorMessage.hidden = true;
-  });
+  };
+  field.addEventListener("input", clearValidationState);
+  field.addEventListener("change", clearValidationState);
 }
 
 comparePairButtons.forEach((button) => {

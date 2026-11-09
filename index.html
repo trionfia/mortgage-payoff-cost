@@ -57,7 +57,30 @@
               <input id="investment-rate" name="investmentRate" type="number" min="0" max="100" step="0.01" value="7" required inputmode="decimal">
               <span class="input-suffix" aria-hidden="true">%</span>
             </span>
-            <span class="field-hint">The same return is used for both strategies.</span>
+            <span class="field-hint">The same return is used for all three scenarios.</span>
+          </label>
+
+          <label class="field" for="tax-efficiency">
+            <span>Tax-efficient investment portfolio</span>
+            <span class="input-wrap select-wrap">
+              <select id="tax-efficiency" name="taxEfficiency" required>
+                <option value="0.0045">High — 0.45% annual tax drag</option>
+                <option value="0.0075" selected>Moderate — 0.75% annual tax drag</option>
+                <option value="0.013">Low — 1.3% annual tax drag</option>
+              </select>
+            </span>
+            <span class="field-hint">Estimated tax drag is deducted from the investment balance annually.</span>
+          </label>
+
+          <label class="field" for="capital-gains-rate">
+            <span>Long-term capital gains tax rate</span>
+            <span class="input-wrap select-wrap">
+              <select id="capital-gains-rate" name="capitalGainsRate" required>
+                <option value="0.15" selected>15%</option>
+                <option value="0.20">20%</option>
+              </select>
+            </span>
+            <span class="field-hint">Applied to each scenario's final investment balance.</span>
           </label>
 
           <label class="field" for="extra-payment">
@@ -126,13 +149,13 @@
               <p id="months-early-text">Extra monthly payments would pay off the loan <strong id="months-early">—</strong> early.</p>
             </div>
           </div>
-          <p class="disclaimer">Illustration only—not financial advice. Investment returns are assumed constant and are not guaranteed.</p>
+          <p class="disclaimer">Illustration only—not financial advice. Returns are assumed constant and are not guaranteed; tax drag and capital gains are estimates.</p>
         </section>
       </section>
 
       <section class="how-it-works" aria-label="How the comparison works">
         <span class="how-icon" aria-hidden="true">i</span>
-        <p><strong>How it works</strong><br>All three strategies are compared over the remaining loan term. “Keep loan + invest balance” invests the current balance today and continues the scheduled loan payments. “Keep loan + extra monthly payment” starts with the same balance, invests it, subtracts the extra payment from the invested balance each month while the loan remains active, and then contributes the regular monthly payment to investments once the loan is repaid early. “Pay off” uses the balance to clear the loan, then invests the freed-up monthly payment. Returns are compounded monthly, with deposits made at month-end.</p>
+        <p><strong>How it works</strong><br>All three strategies are compared over the remaining loan term. “Keep loan + invest balance” invests the current balance today and continues the scheduled loan payments. “Keep loan + extra monthly payment” starts with the same balance, invests it, subtracts the extra payment from the invested balance each month while the loan remains active, and then contributes the regular monthly payment to investments once the loan is repaid early. “Pay off” uses the balance to clear the loan, then invests the freed-up monthly payment. Returns are compounded monthly, with deposits made at month-end. The selected high, moderate, or low tax-efficient portfolio applies the corresponding estimated tax drag to investment balances once per year. The selected 15% or 20% long-term capital gains rate is deducted from each scenario's final investment balance.</p>
       </section>
 
       <footer class="footer">
