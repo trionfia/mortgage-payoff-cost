@@ -55,13 +55,14 @@ The drag applies to the full balance, including investment gains and contributio
 
 ### Long-term capital gains tax
 
-After projecting each scenario and applying annual tax drag, the selected long-term capital gains rate is deducted from the final investment balance:
+After projecting each scenario and applying annual tax drag, the selected long-term capital gains rate applies only to positive investment gains, not to the invested principal/contributions:
 
 ```text
-after-tax ending balance = ending investment balance * (1 - capital gains tax rate)
+taxable gain = max(0, ending investment balance - investment principal/contributions)
+after-tax ending balance = ending investment balance - taxable gain * capital gains tax rate
 ```
 
-This final deduction applies equally to all three scenarios.
+The cost basis is the initial balance for “Keep loan + invest balance,” the initial balance plus payments invested after early payoff for “Keep loan + extra monthly payment,” and the sum of monthly payments invested for “Pay off + invest payments.”
 
 ### Keep the loan and invest
 
@@ -89,7 +90,7 @@ The comparison highlights the difference between the selected pair of ending inv
 - Investment APR is treated as a constant nominal annual rate, compounded monthly.
 - Monthly investment contributions are made at month-end.
 - The selected annual tax drag is a simplified estimate, not a tax calculation; actual tax treatment depends on the portfolio and investor.
-- The selected 15% or 20% capital gains rate is applied to the entire final investment balance as a simplified estimate; actual capital gains taxes generally depend on taxable gains and individual circumstances.
+- The selected 15% or 20% capital gains rate applies to positive investment gains above the modeled cost basis; actual capital gains taxes depend on taxable gains and individual circumstances.
 - Investment fees beyond the selected tax drag, loan fees, changing rates, payment timing variations, and market volatility are not modeled.
 - Actual investment returns are uncertain; the estimated result is not a forecast or guarantee.
 

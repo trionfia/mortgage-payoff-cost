@@ -71,7 +71,10 @@ function getLoanPayoffMonths({ principal, loanRate, months, extraMonthlyPayment 
 function simulateKeepLoanWithExtraMonthlyPayment({ principal, loanRate, months, investmentRate, annualTaxDrag, extraMonthlyPayment }) {
   const monthlyInvestmentRate = investmentRate / 100 / 12;
   if (extraMonthlyPayment === 0) {
-    return growInitialInvestment(principal, monthlyInvestmentRate, months, annualTaxDrag);
+    return {
+      balance: growInitialInvestment(principal, monthlyInvestmentRate, months, annualTaxDrag),
+      contributions: 0,
+    };
   }
 
   const monthlyLoanRate = loanRate / 100 / 12;
@@ -81,6 +84,7 @@ function simulateKeepLoanWithExtraMonthlyPayment({ principal, loanRate, months, 
 
   let loanBalance = principal;
   let investmentBalance = principal;
+  let contributions = 0;
 
   for (let month = 1; month <= months; month += 1) {
     investmentBalance *= 1 + monthlyInvestmentRate;
@@ -94,12 +98,13 @@ function simulateKeepLoanWithExtraMonthlyPayment({ principal, loanRate, months, 
       loanBalance = Math.max(0, loanBalance - principalReduction);
     } else {
       investmentBalance += monthlyPayment;
+      contributions += monthlyPayment;
     }
 
     investmentBalance = applyAnnualTaxDrag(investmentBalance, month, annualTaxDrag);
   }
 
-  return investmentBalance;
+  return { balance: investmentBalance, contributions };
 }
 
 function calculateComparison({ principal, loanRate, months, investmentRate, annualTaxDrag, capitalGainsRate, extraMonthlyPayment = 0 }) {
@@ -110,7 +115,7 @@ function calculateComparison({ principal, loanRate, months, investmentRate, annu
     : principal * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -months));
 
   const keepInvestmentBeforeCapitalGains = growInitialInvestment(principal, monthlyInvestmentRate, months, annualTaxDrag);
-  const keepInvestmentWithExtraBeforeCapitalGains = simulateKeepLoanWithExtraMonthlyPayment({
+  const keepInvestmentWithExtraProjection = simulateKeepLoanWithExtraMonthlyPayment({
     principal,
     loanRate,
     months,
@@ -124,16 +129,24 @@ function calculateComparison({ principal, loanRate, months, investmentRate, annu
     months,
     annualTaxDrag,
   );
-  const afterCapitalGainsTax = (balance) => balance * (1 - capitalGainsRate);
-  const keepInvestment = afterCapitalGainsTax(keepInvestmentBeforeCapitalGains);
-  const keepInvestmentWithExtra = afterCapitalGainsTax(keepInvestmentWithExtraBeforeCapitalGains);
-  const payoffInvestment = afterCapitalGainsTax(payoffInvestmentBeforeCapitalGains);
   const loanPayoffMonthsWithExtra = getLoanPayoffMonths({
     principal,
     loanRate,
     months,
     extraMonthlyPayment,
   });
+  const afterCapitalGainsTax = (balance, costBasis) => (
+    balance - Math.max(0, balance - costBasis) * capitalGainsRate
+  );
+  const keepInvestment = afterCapitalGainsTax(keepInvestmentBeforeCapitalGains, principal);
+  const keepInvestmentWithExtra = afterCapitalGainsTax(
+    keepInvestmentWithExtraProjection.balance,
+    principal + keepInvestmentWithExtraProjection.contributions,
+  );
+  const payoffInvestment = afterCapitalGainsTax(
+    payoffInvestmentBeforeCapitalGains,
+    monthlyPayment * months,
+  );
 
   return {
     monthlyPayment,
