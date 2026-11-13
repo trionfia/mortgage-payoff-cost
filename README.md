@@ -15,8 +15,11 @@ No build step, package installation, or server is required. Clone or download th
 ## Inputs
 
 - **Remaining loan balance:** the current principal balance, greater than $0 and at most $1 billion.
-- **Loan interest rate:** annual loan rate from 0% to 100%, entered to three decimal places (for example, `3.875`).
+- **Loan rate type:** fixed or adjustable. Fixed is selected by default.
+- **Current loan interest rate:** annual rate from 0% to 100%, entered to three decimal places (for example, `3.875`).
 - **Time left on loan:** whole number of months from 1 to 600.
+- **Adjustable-rate terms:** for adjustable loans, enter the remaining initial fixed-rate months, choose a 6- or 12-month reset interval, and set a recurring rate change in percentage points at each reset. Optional limits include a maximum change per reset and lifetime rate floor and ceiling.
+- **Interest-only months remaining:** number of months from 0 through the remaining loan term. During this period, payments cover interest only; afterward, the current balance amortizes over the remaining term.
 - **Expected investment APR:** annual investment return from 0% to 100%, entered to two decimal places.
 - **Tax-efficient investment portfolio:** estimated annual tax drag of 0.45% (high), 0.75% (moderate), or 1.3% (low).
 - **Long-term capital gains tax rate:** 15% or 20%, applied to each scenario's final investment balance.
@@ -28,9 +31,9 @@ Press **Compare strategies** to recalculate the results. The calculator starts w
 
 The annual rates are converted to monthly rates by dividing by 12 (and by 100 to convert percentages to decimals).
 
-### Monthly loan payment
+### Loan payment schedule
 
-For a fixed-rate loan with equal monthly payments, the estimated payment is:
+For a fixed-rate amortizing loan, the monthly payment is:
 
 ```text
 monthly rate = annual loan rate / 12
@@ -41,6 +44,12 @@ otherwise:
     payment = remaining balance * monthly rate
               / (1 - (1 + monthly rate)^(-months remaining))
 ```
+
+For an adjustable-rate loan, the entered current rate remains in effect for the remaining initial fixed-rate period. The rate changes at the start of the first month after that period, then every 6 or 12 months. At each reset, the entered recurring rate step is limited by the optional per-reset cap and the result is clamped to the optional lifetime floor and ceiling. Payments are recalculated at each reset using the current balance, rate, and remaining term.
+
+During the entered interest-only period, the monthly payment is the interest due at the current rate. When that period ends, the balance is amortized over the remaining loan term. Rate resets during the interest-only period change the interest payment. An interest-only period that reaches loan maturity is paid off with a final balloon payment.
+
+The calculator builds a monthly baseline schedule and a separate schedule with extra principal payments. The baseline schedule is used by the keep-loan and pay-off scenarios; the extra-payment schedule determines early payoff and extra principal withdrawals.
 
 ### Investment growth and tax drag
 
@@ -66,15 +75,15 @@ The cost basis is the initial balance for “Keep loan + invest balance,” the 
 
 ### Keep the loan and invest
 
-The remaining balance is treated as an investment made today. It grows monthly, with annual tax drag applied at each 12-month mark.
+The remaining balance is treated as an investment made today. It grows monthly, with annual tax drag applied at each 12-month mark. The loan is paid according to the baseline schedule.
 
 ### Keep the loan and make extra monthly payments
 
-The starting investment is the remaining balance. While the loan is active, each extra monthly payment is deducted from the invested balance and applied to loan principal in addition to the scheduled payment. After early payoff, scheduled loan payments are invested instead. When the extra payment is $0, this projection matches the keep-and-invest scenario.
+The starting investment is the remaining balance. While the loan is active, each extra monthly payment is deducted from the invested balance and applied to loan principal in addition to the scheduled payment. After early payoff, the baseline scheduled payments are invested instead. When the extra payment is $0, this projection matches the keep-and-invest scenario.
 
 ### Pay off the loan and invest the payments
 
-The balance is used to pay off the loan immediately. Each month, the estimated loan payment is invested at the same assumed monthly investment rate. Contributions are made at month-end, and annual tax drag is applied after each 12th month's contribution.
+The balance is used to pay off the loan immediately. Each month, the baseline scheduled loan payment is invested at the same assumed monthly investment rate. Contributions are made at month-end, and annual tax drag is applied after each 12th month's contribution.
 
 ```text
 each month: investment balance = investment balance * (1 + monthly investment rate)
@@ -86,7 +95,9 @@ The comparison highlights the difference between the selected pair of ending inv
 
 ## Assumptions and limitations
 
-- The loan has a fixed rate and is repaid with equal monthly payments.
+- Loan rates, payment timing, and amortization are modeled monthly; adjustable rates follow the user-entered schedule and are not tied to market indexes.
+- Optional rate floors, ceilings, and per-reset caps are applied to the user-entered recurring rate step.
+- Interest-only payments do not reduce principal except for entered extra principal payments; if interest-only extends to maturity, a final balloon payment pays off the remaining balance.
 - Investment APR is treated as a constant nominal annual rate, compounded monthly.
 - Monthly investment contributions are made at month-end.
 - The selected annual tax drag is a simplified estimate, not a tax calculation; actual tax treatment depends on the portfolio and investor.
