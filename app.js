@@ -5,13 +5,22 @@ let selectedComparePair = "keep-extra";
 
 const fields = {
   principal: document.querySelector("#principal"),
+  loanType: document.querySelector("#loan-type"),
   loanRate: document.querySelector("#loan-rate"),
   term: document.querySelector("#term"),
+  initialFixedMonths: document.querySelector("#initial-fixed-months"),
+  adjustmentInterval: document.querySelector("#adjustment-interval"),
+  rateStep: document.querySelector("#rate-step"),
+  maxRateChange: document.querySelector("#max-rate-change"),
+  rateFloor: document.querySelector("#rate-floor"),
+  rateCeiling: document.querySelector("#rate-ceiling"),
+  interestOnlyMonths: document.querySelector("#interest-only-months"),
   investmentRate: document.querySelector("#investment-rate"),
   taxEfficiency: document.querySelector("#tax-efficiency"),
   capitalGainsRate: document.querySelector("#capital-gains-rate"),
   extraPayment: document.querySelector("#extra-payment"),
 };
+const armOptions = document.querySelector("#arm-options");
 
 const formatCurrency = (value) => new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -34,118 +43,167 @@ function growInitialInvestment(principal, monthlyRate, months, annualTaxDrag) {
   return balance;
 }
 
-function futureValueOfMonthlyContributions(payment, monthlyRate, months, annualTaxDrag) {
+function futureValueOfMonthlyContributions(payments, monthlyRate, annualTaxDrag) {
   let balance = 0;
 
-  for (let month = 1; month <= months; month += 1) {
+  for (let month = 1; month <= payments.length; month += 1) {
     balance *= 1 + monthlyRate;
-    balance += payment;
+    balance += payments[month - 1];
     balance = applyAnnualTaxDrag(balance, month, annualTaxDrag);
   }
 
   return balance;
 }
 
-function getLoanPayoffMonths({ principal, loanRate, months, extraMonthlyPayment }) {
-  if (extraMonthlyPayment <= 0) return months;
-
-  const monthlyLoanRate = loanRate / 100 / 12;
-  const monthlyPayment = monthlyLoanRate === 0
-    ? principal / months
-    : principal * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -months));
-
-  let loanBalance = principal;
-  let paidMonths = 0;
-
-  while (loanBalance > 0 && paidMonths < months) {
-    const interest = loanBalance * monthlyLoanRate;
-    const totalPayment = monthlyPayment + extraMonthlyPayment;
-    const principalReduction = Math.min(loanBalance, Math.max(0, totalPayment - interest));
-    loanBalance = Math.max(0, loanBalance - principalReduction);
-    paidMonths += 1;
-  }
-
-  return paidMonths;
+function calculateScheduledPayment(balance, annualRate, remainingMonths) {
+  const monthlyRate = annualRate / 100 / 12;
+  return monthlyRate === 0
+    ? balance / remainingMonths
+    : balance * monthlyRate / (1 - Math.pow(1 + monthlyRate, -remainingMonths));
 }
 
-function simulateKeepLoanWithExtraMonthlyPayment({ principal, loanRate, months, investmentRate, annualTaxDrag, extraMonthlyPayment }) {
-  const monthlyInvestmentRate = investmentRate / 100 / 12;
-  if (extraMonthlyPayment === 0) {
+function getRateAfterReset(currentRate, values) {
+  let rateChange = values.rateStep;
+  if (values.maxRateChange !== null) {
+    rateChange = Math.max(-values.maxRateChange, Math.min(values.maxRateChange, rateChange));
+  }
+
+  let nextRate = Math.max(0, Math.min(100, currentRate + rateChange));
+  if (values.rateFloor !== null) nextRate = Math.max(values.rateFloor, nextRate);
+  if (values.rateCeiling !== null) nextRate = Math.min(values.rateCeiling, nextRate);
+  return nextRate;
+}
+
+function buildLoanSchedule(values, extraMonthlyPayment = 0) {
+  const schedule = [];
+  let balance = values.principal;
+  let currentRate = values.loanRate;
+  let scheduledPayment = null;
+  let previousMonthWasInterestOnly = false;
+
+  for (let month = 1; month <= values.months; month += 1) {
+    const rateReset = values.loanType === "adjustable"
+      && month > values.initialFixedMonths
+      && (month - values.initialFixedMonths - 1) % values.adjustmentInterval === 0;
+
+    if (rateReset) currentRate = getRateAfterReset(currentRate, values);
+
+    if (balance <= 0) {
+      schedule.push({
+        rate: currentRate,
+        payment: 0,
+        interest: 0,
+        principal: 0,
+        extraPrincipal: 0,
+        balance: 0,
+        active: false,
+      });
+      continue;
+    }
+
+    const interest = balance * (currentRate / 100 / 12);
+    const interestOnly = month <= values.interestOnlyMonths && month < values.months;
+    let scheduledPrincipal = 0;
+
+    if (interestOnly) {
+      scheduledPayment = interest;
+    } else {
+      if (scheduledPayment === null || rateReset || previousMonthWasInterestOnly) {
+        scheduledPayment = calculateScheduledPayment(balance, currentRate, values.months - month + 1);
+      }
+      scheduledPrincipal = Math.min(balance, Math.max(0, scheduledPayment - interest));
+    }
+
+    const extraPrincipal = Math.min(balance - scheduledPrincipal, extraMonthlyPayment);
+    if (month === values.months) {
+      scheduledPrincipal = balance - extraPrincipal;
+    }
+    balance = Math.max(0, balance - scheduledPrincipal - extraPrincipal);
+
+    schedule.push({
+      rate: currentRate,
+      payment: interest + scheduledPrincipal,
+      interest,
+      principal: scheduledPrincipal,
+      extraPrincipal,
+      balance,
+      active: true,
+    });
+    previousMonthWasInterestOnly = interestOnly;
+  }
+
+  return schedule;
+}
+
+function simulateKeepLoanWithExtraMonthlyPayment(values, baselineSchedule, extraSchedule) {
+  const monthlyInvestmentRate = values.investmentRate / 100 / 12;
+  if (values.extraMonthlyPayment === 0) {
     return {
-      balance: growInitialInvestment(principal, monthlyInvestmentRate, months, annualTaxDrag),
+      balance: growInitialInvestment(values.principal, monthlyInvestmentRate, values.months, values.annualTaxDrag),
       contributions: 0,
     };
   }
 
-  const monthlyLoanRate = loanRate / 100 / 12;
-  const monthlyPayment = monthlyLoanRate === 0
-    ? principal / months
-    : principal * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -months));
-
-  let loanBalance = principal;
-  let investmentBalance = principal;
+  let investmentBalance = values.principal;
   let contributions = 0;
 
-  for (let month = 1; month <= months; month += 1) {
+  for (let month = 1; month <= values.months; month += 1) {
     investmentBalance *= 1 + monthlyInvestmentRate;
+    const extraLoanMonth = extraSchedule[month - 1];
 
-    if (loanBalance > 0) {
-      investmentBalance = Math.max(0, investmentBalance - extraMonthlyPayment);
-
-      const interest = loanBalance * monthlyLoanRate;
-      const totalPayment = monthlyPayment + extraMonthlyPayment;
-      const principalReduction = Math.min(loanBalance, Math.max(0, totalPayment - interest));
-      loanBalance = Math.max(0, loanBalance - principalReduction);
+    if (extraLoanMonth.active) {
+      investmentBalance = Math.max(0, investmentBalance - extraLoanMonth.extraPrincipal);
     } else {
-      investmentBalance += monthlyPayment;
-      contributions += monthlyPayment;
+      const contribution = baselineSchedule[month - 1].payment;
+      investmentBalance += contribution;
+      contributions += contribution;
     }
 
-    investmentBalance = applyAnnualTaxDrag(investmentBalance, month, annualTaxDrag);
+    investmentBalance = applyAnnualTaxDrag(investmentBalance, month, values.annualTaxDrag);
   }
 
   return { balance: investmentBalance, contributions };
 }
 
-function calculateComparison({ principal, loanRate, months, investmentRate, annualTaxDrag, capitalGainsRate, extraMonthlyPayment = 0 }) {
-  const monthlyInvestmentRate = investmentRate / 100 / 12;
-  const monthlyLoanRate = loanRate / 100 / 12;
-  const monthlyPayment = monthlyLoanRate === 0
-    ? principal / months
-    : principal * monthlyLoanRate / (1 - Math.pow(1 + monthlyLoanRate, -months));
+function getLoanPayoffMonths(schedule) {
+  const payoffIndex = schedule.findIndex((month) => month.balance === 0);
+  return payoffIndex < 0 ? schedule.length : payoffIndex + 1;
+}
 
-  const keepInvestmentBeforeCapitalGains = growInitialInvestment(principal, monthlyInvestmentRate, months, annualTaxDrag);
-  const keepInvestmentWithExtraProjection = simulateKeepLoanWithExtraMonthlyPayment({
-    principal,
-    loanRate,
-    months,
-    investmentRate,
-    annualTaxDrag,
-    extraMonthlyPayment,
-  });
-  const payoffInvestmentBeforeCapitalGains = futureValueOfMonthlyContributions(
-    monthlyPayment,
+function calculateComparison(values) {
+  const monthlyInvestmentRate = values.investmentRate / 100 / 12;
+  const baselineSchedule = buildLoanSchedule(values);
+  const extraSchedule = buildLoanSchedule(values, values.extraMonthlyPayment);
+  const monthlyPayment = baselineSchedule[0].payment;
+  const keepInvestmentBeforeCapitalGains = growInitialInvestment(
+    values.principal,
     monthlyInvestmentRate,
-    months,
-    annualTaxDrag,
+    values.months,
+    values.annualTaxDrag,
   );
-  const loanPayoffMonthsWithExtra = getLoanPayoffMonths({
-    principal,
-    loanRate,
-    months,
-    extraMonthlyPayment,
-  });
+  const keepInvestmentWithExtraProjection = simulateKeepLoanWithExtraMonthlyPayment(
+    values,
+    baselineSchedule,
+    extraSchedule,
+  );
+  const payoffInvestmentBeforeCapitalGains = futureValueOfMonthlyContributions(
+    baselineSchedule.map((month) => month.payment),
+    monthlyInvestmentRate,
+    values.annualTaxDrag,
+  );
+  const loanPayoffMonthsWithExtra = getLoanPayoffMonths(extraSchedule);
   const afterCapitalGainsTax = (balance, costBasis) => (
-    balance - Math.max(0, balance - costBasis) * capitalGainsRate
+    balance - Math.max(0, balance - costBasis) * values.capitalGainsRate
   );
-  const keepInvestment = afterCapitalGainsTax(keepInvestmentBeforeCapitalGains, principal);
+  const keepInvestment = afterCapitalGainsTax(keepInvestmentBeforeCapitalGains, values.principal);
   const keepInvestmentWithExtra = afterCapitalGainsTax(
     keepInvestmentWithExtraProjection.balance,
-    principal + keepInvestmentWithExtraProjection.contributions,
+    values.principal + keepInvestmentWithExtraProjection.contributions,
   );
+  const payoffContributions = baselineSchedule.reduce((total, month) => total + month.payment, 0);
   const payoffInvestment = afterCapitalGainsTax(
     payoffInvestmentBeforeCapitalGains,
-    monthlyPayment * months,
+    payoffContributions,
   );
 
   return {
@@ -153,10 +211,10 @@ function calculateComparison({ principal, loanRate, months, investmentRate, annu
     keepInvestment,
     keepInvestmentWithExtra,
     payoffInvestment,
-    extraMonthlyPayment,
-    originalTerm: months,
+    extraMonthlyPayment: values.extraMonthlyPayment,
+    originalTerm: values.months,
     loanPayoffMonthsWithExtra,
-    monthsEarly: Math.max(0, months - loanPayoffMonthsWithExtra),
+    monthsEarly: Math.max(0, values.months - loanPayoffMonthsWithExtra),
   };
 }
 
@@ -255,10 +313,20 @@ function showResults(result) {
 }
 
 function readInputs() {
+  const optionalNumber = (field) => field.value.trim() === "" ? null : Number(field.value);
+
   return {
     principal: Number(fields.principal.value),
+    loanType: fields.loanType.value,
     loanRate: Number(fields.loanRate.value),
     months: Number(fields.term.value),
+    initialFixedMonths: Number(fields.initialFixedMonths.value),
+    adjustmentInterval: Number(fields.adjustmentInterval.value),
+    rateStep: Number(fields.rateStep.value),
+    maxRateChange: optionalNumber(fields.maxRateChange),
+    rateFloor: optionalNumber(fields.rateFloor),
+    rateCeiling: optionalNumber(fields.rateCeiling),
+    interestOnlyMonths: Number(fields.interestOnlyMonths.value),
     investmentRate: Number(fields.investmentRate.value),
     annualTaxDrag: Number(fields.taxEfficiency.value),
     capitalGainsRate: Number(fields.capitalGainsRate.value),
@@ -269,13 +337,26 @@ function readInputs() {
 function validateInputs(values) {
   const limits = [
     [fields.principal, values.principal > 0 && values.principal <= 1_000_000_000],
+    [fields.loanType, ["fixed", "adjustable"].includes(values.loanType)],
     [fields.loanRate, values.loanRate >= 0 && values.loanRate <= 100],
     [fields.term, Number.isInteger(values.months) && values.months >= 1 && values.months <= 600],
+    [fields.interestOnlyMonths, Number.isInteger(values.interestOnlyMonths) && values.interestOnlyMonths >= 0 && values.interestOnlyMonths <= values.months],
     [fields.investmentRate, values.investmentRate >= 0 && values.investmentRate <= 100],
     [fields.taxEfficiency, [0.0045, 0.0075, 0.013].includes(values.annualTaxDrag)],
     [fields.capitalGainsRate, [0.15, 0.2].includes(values.capitalGainsRate)],
     [fields.extraPayment, Number.isFinite(values.extraMonthlyPayment) && values.extraMonthlyPayment >= 0 && values.extraMonthlyPayment <= 1_000_000_000],
   ];
+
+  if (values.loanType === "adjustable") {
+    limits.push(
+      [fields.initialFixedMonths, Number.isInteger(values.initialFixedMonths) && values.initialFixedMonths >= 1 && values.initialFixedMonths <= values.months],
+      [fields.adjustmentInterval, [6, 12].includes(values.adjustmentInterval)],
+      [fields.rateStep, fields.rateStep.value.trim() !== "" && Number.isFinite(values.rateStep) && values.rateStep >= -100 && values.rateStep <= 100],
+      [fields.maxRateChange, values.maxRateChange === null || (Number.isFinite(values.maxRateChange) && values.maxRateChange >= 0 && values.maxRateChange <= 100)],
+      [fields.rateFloor, values.rateFloor === null || (Number.isFinite(values.rateFloor) && values.rateFloor >= 0 && values.rateFloor <= 100)],
+      [fields.rateCeiling, values.rateCeiling === null || (Number.isFinite(values.rateCeiling) && values.rateCeiling >= 0 && values.rateCeiling <= 100)],
+    );
+  }
 
   for (const [field, valid] of limits) {
     field.setAttribute("aria-invalid", String(!valid));
@@ -284,7 +365,41 @@ function validateInputs(values) {
       return false;
     }
   }
+
+  if (values.loanType === "adjustable") {
+    if (values.rateFloor !== null && values.rateCeiling !== null && values.rateFloor > values.rateCeiling) {
+      fields.rateFloor.setAttribute("aria-invalid", "true");
+      fields.rateFloor.focus();
+      return false;
+    }
+    if (values.rateFloor !== null && values.loanRate < values.rateFloor) {
+      fields.rateFloor.setAttribute("aria-invalid", "true");
+      fields.rateFloor.focus();
+      return false;
+    }
+    if (values.rateCeiling !== null && values.loanRate > values.rateCeiling) {
+      fields.rateCeiling.setAttribute("aria-invalid", "true");
+      fields.rateCeiling.focus();
+      return false;
+    }
+  }
+
   return true;
+}
+
+function updateLoanTypeFields() {
+  const adjustable = fields.loanType.value === "adjustable";
+  armOptions.hidden = !adjustable;
+  armOptions.disabled = !adjustable;
+  fields.loanType.setAttribute("aria-expanded", String(adjustable));
+  if (!adjustable) {
+    armOptions.querySelectorAll("[aria-invalid]").forEach((field) => field.removeAttribute("aria-invalid"));
+  }
+}
+
+function showInputError() {
+  errorMessage.textContent = "Check your entries. Loan and investment rates must be 0%–100%, the extra payment must be $0 or more, the loan term must be 1–600 months, the interest-only period cannot exceed the term, and adjustable-rate limits must be valid.";
+  errorMessage.hidden = false;
 }
 
 form.addEventListener("submit", (event) => {
@@ -292,8 +407,7 @@ form.addEventListener("submit", (event) => {
   const values = readInputs();
 
   if (!validateInputs(values)) {
-    errorMessage.textContent = "Enter a positive loan balance, rates from 0% to 100%, a whole loan term from 1 to 600 months, and an extra payment of $0 or more.";
-    errorMessage.hidden = false;
+    showInputError();
     return;
   }
 
@@ -310,14 +424,27 @@ for (const field of Object.values(fields)) {
   field.addEventListener("change", clearValidationState);
 }
 
+fields.loanType.addEventListener("change", () => {
+  updateLoanTypeFields();
+  errorMessage.hidden = true;
+});
+
 comparePairButtons.forEach((button) => {
   button.addEventListener("click", () => {
+    const values = readInputs();
+    if (!validateInputs(values)) {
+      showInputError();
+      return;
+    }
+
+    errorMessage.hidden = true;
     selectedComparePair = button.dataset.pair;
     comparePairButtons.forEach((option) => {
       option.classList.toggle("is-active", option === button);
     });
-    showResults(calculateComparison(readInputs()));
+    showResults(calculateComparison(values));
   });
 });
 
+updateLoanTypeFields();
 showResults(calculateComparison(readInputs()));
